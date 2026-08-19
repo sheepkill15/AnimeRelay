@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Anime Relay",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl3aVLYt4mvWkOt4yKKXadyswVq7gpb4NKXNqEgWZOmeCfnqf55HRl4Ow4BKyTgE4VADJqOWuyriGi4ghvZgUisncUi2rM8ZtoXJQaDjE07acqkUREkNwjSRJ4wJIJf4jQdQmTNxnMbMElGmyEZoxg4V4FUJGXml5UiYQ4orcHorGeIklBhdgNJxVfwks0cP0PzHglR++nUjtm6D+m23JkmxjB36nlsJz74Iu1+Bk0FSD8aeAnPp7o5daeJeSNzkW58BQJXQttVx8xyBYmITKbCl9zzYT0CQJRKOM3fJ3vStb47Md9EhRIttZpt3PQWm2wdzDXPZlnMTzlgDbJeASCQIDAQAB",
   "description": "Detect anime playback and relay completed episodes to the Anime Relay desktop app.",
   "icons": { "16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png" },
