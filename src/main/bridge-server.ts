@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { AppDatabase } from './database.js';
 import { EventProcessor } from './event-processor.js';
 import { MalClient } from './mal-client.js';
+import { isYoutubeUrl } from './source-policy.js';
 
 const eventSchema = z.object({
   sourceKey: z.string().min(1).max(500),
@@ -80,6 +81,7 @@ export class BridgeServer {
         if (!this.isAuthorized(request)) return this.json(response, 401, { error: 'Pair the extension first.' });
         this.markExtensionSeen();
         const event = eventSchema.parse(await this.readJson(request));
+        if (isYoutubeUrl(event.url)) return this.json(response, 422, { error: 'YouTube is excluded from Anime Relay.' });
         const stored = await this.processor.ingest({ source: 'browser', ...event });
         return this.json(response, 202, { id: stored.id, status: stored.status });
       }

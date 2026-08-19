@@ -62,4 +62,42 @@ describe('BridgeServer extension state', () => {
       await server.stop();
     }
   });
+
+  it('hard-rejects YouTube events before they reach the processor', async () => {
+    const settings = new Map<string, string>([
+      ['extensionPairingCode', '246810'],
+      ['extensionToken', 'test-token'],
+    ]);
+    const db = {
+      getSetting: (key: string) => settings.get(key) ?? '',
+      setSetting: (key: string, value: string) => settings.set(key, value),
+    } as unknown as AppDatabase;
+    const processor = { ingest: vi.fn() } as unknown as EventProcessor;
+    const port = await getFreePort();
+    const server = new BridgeServer(port, db, processor, {} as MalClient, vi.fn(), vi.fn());
+    await server.start();
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/api/events`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceKey: 'browser:youtube.com:test:1',
+          title: 'Not anime',
+          episode: 1,
+          progress: 0.5,
+          durationSeconds: 600,
+          positionSeconds: 300,
+          url: 'https://www.youtube.com/watch?v=abc',
+          player: 'Browser',
+          detectedMalAnimeId: null,
+          observedAt: new Date().toISOString(),
+        }),
+      });
+      expect(response.status).toBe(422);
+      await expect(response.json()).resolves.toEqual({ error: 'YouTube is excluded from Anime Relay.' });
+      expect(processor.ingest).not.toHaveBeenCalled();
+    } finally {
+      await server.stop();
+    }
+  });
 });

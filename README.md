@@ -5,6 +5,7 @@ Anime Relay is a Windows tray app that records completed anime episodes on MyAni
 ## What works in this MVP
 
 - Generic HTML5 video tracking across changing streaming sites
+- A hard exclusion for YouTube, including embedded and short-link domains
 - Anikoto player-message tracking using its explicit MAL and episode metadata
 - Cross-frame metadata merging for embedded video players
 - Browser-extension pairing with a durable local PIN and token

@@ -1,6 +1,7 @@
 const BRIDGE = 'http://127.0.0.1:3210';
 const tabContexts = new Map();
 const recentlySent = new Map();
+const YOUTUBE_HOSTS = ['youtube.com', 'youtu.be', 'youtube-nocookie.com'];
 
 chrome.runtime.onInstalled.addListener(() => chrome.alarms.create('health', { periodInMinutes: 1 }));
 chrome.alarms.onAlarm.addListener((alarm) => { if (alarm.name === 'health') void checkHealth(); });
@@ -44,10 +45,12 @@ async function pair(code) {
 }
 
 async function relayPlayback(payload, sender) {
+  if (isYoutubeUrl(sender.url) || isYoutubeUrl(payload?.url)) return { ok: false, error: 'blocked_source' };
   const { bridgeToken } = await chrome.storage.local.get('bridgeToken');
   if (!bridgeToken) return { ok: false, error: 'not_paired' };
   const context = sender.tab?.id != null ? tabContexts.get(sender.tab.id) : null;
   const merged = mergeContext(payload, context, sender.frameId === 0);
+  if (isYoutubeUrl(merged.url)) return { ok: false, error: 'blocked_source' };
   if (!merged.title) return { ok: false, error: 'no_title' };
 
   const dedupeKey = `${merged.sourceKey}:${Math.floor(merged.progress * 20)}`;
@@ -102,3 +105,13 @@ async function getStatus() {
 }
 
 async function checkHealth() { await getStatus(); }
+
+function isYoutubeUrl(value) {
+  if (!value) return false;
+  try {
+    const hostname = new URL(value).hostname.toLocaleLowerCase().replace(/\.$/, '');
+    return YOUTUBE_HOSTS.some((host) => hostname === host || hostname.endsWith(`.${host}`));
+  } catch {
+    return false;
+  }
+}

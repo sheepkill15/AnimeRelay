@@ -1,6 +1,6 @@
 {
   "name": "anime-relay",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "description": "Automatic MyAnimeList tracking across browser streaming, Plex, and local playback.",
   "main": "dist/main/index.js",
