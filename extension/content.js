@@ -3,13 +3,19 @@ const sentForVideo = new WeakMap();
 let lastSiteProgress = 0;
 let lastSitePosition = 0;
 let lastSiteDuration = 0;
+let lastSiteIdentity = '';
+let lastSiteReportedIdentity = '';
+let lastContextIdentity = '';
+let lastKnownUrl = location.href;
 let extensionContextActive = true;
 let contextTimer = null;
+let navigationTimer = null;
 let videoObserver = null;
 
 function deactivateExtensionContext() {
   extensionContextActive = false;
   if (contextTimer != null) clearInterval(contextTimer);
+  if (navigationTimer != null) clearInterval(navigationTimer);
   videoObserver?.disconnect();
 }
 
@@ -129,21 +135,70 @@ function cleanTitle(value) {
     .trim();
 }
 
-function reportContext() {
+function contextIdentity(context) {
+  return [context.url, context.detectedMalAnimeId || '', context.title || '', context.episode || ''].join('|');
+}
+
+function resetSitePlayback(identity) {
+  if (lastSiteIdentity === identity) return;
+  lastSiteIdentity = identity;
+  lastSiteProgress = 0;
+  lastSitePosition = 0;
+  lastSiteDuration = 0;
+}
+
+function reportContext(force = false) {
   if (!hasValidExtensionContext()) return;
-  if (window.top === window) safeSendMessage({ type: 'page-context', payload: pageContext() });
+  if (window.top !== window) return;
+  const context = pageContext();
+  const identity = contextIdentity(context);
+  resetSitePlayback(identity);
+  lastKnownUrl = location.href;
+  if (!force && identity === lastContextIdentity) return;
+  lastContextIdentity = identity;
+  safeSendMessage({ type: 'page-context', payload: context });
+}
+
+function detectPageTransition() {
+  if (!hasValidExtensionContext() || window.top !== window) return;
+  if (location.href !== lastKnownUrl) reportContext();
+  else {
+    // Some players switch the active episode before or without changing the URL.
+    const context = pageContext();
+    if (contextIdentity(context) !== lastContextIdentity) reportContext();
+  }
+}
+
+function observeClientNavigation() {
+  if (window.top !== window) return;
+  if (typeof history === 'undefined') return;
+  for (const method of ['pushState', 'replaceState']) {
+    if (typeof history?.[method] !== 'function') continue;
+    const original = history[method].bind(history);
+    history[method] = (...args) => {
+      const result = original(...args);
+      setTimeout(detectPageTransition, 0);
+      return result;
+    };
+  }
+  window.addEventListener('popstate', detectPageTransition, { passive: true });
+  window.addEventListener('hashchange', detectPageTransition, { passive: true });
 }
 
 function reportSitePlayback(positionSeconds, durationSeconds, forceComplete = false) {
   if (!hasValidExtensionContext()) return;
   if (!Number.isFinite(positionSeconds) || !Number.isFinite(durationSeconds) || durationSeconds < MINIMUM_DURATION) return;
+  const context = pageContext();
+  if (!context.title || context.episode == null) return;
+  const identity = contextIdentity(context);
+  resetSitePlayback(identity);
   lastSitePosition = positionSeconds;
   lastSiteDuration = durationSeconds;
   const progress = forceComplete ? 1 : Math.min(Math.max(positionSeconds / durationSeconds, 0), 1);
-  if (!forceComplete && progress - lastSiteProgress < 0.025) return;
+  const firstReportForEpisode = lastSiteReportedIdentity !== identity;
+  if (!forceComplete && !firstReportForEpisode && progress - lastSiteProgress < 0.025) return;
   lastSiteProgress = progress;
-  const context = pageContext();
-  if (!context.title || context.episode == null) return;
+  lastSiteReportedIdentity = identity;
   safeSendMessage({ type: 'playback', payload: {
     sourceKey: '',
     title: context.title,
@@ -187,15 +242,17 @@ function observeSitePlayerMessages() {
 
 function observeVideo(video) {
   if (sentForVideo.has(video)) return;
-  sentForVideo.set(video, 0);
+  sentForVideo.set(video, { identity: '', progress: 0 });
   const report = (force = false) => {
     if (!hasValidExtensionContext()) return;
     if (!Number.isFinite(video.duration) || video.duration < MINIMUM_DURATION || video.currentTime < 1) return;
-    const progress = video.ended ? 1 : Math.min(video.currentTime / video.duration, 1);
-    const lastProgress = sentForVideo.get(video) || 0;
-    if (!force && progress - lastProgress < 0.025) return;
-    sentForVideo.set(video, progress);
     const context = pageContext();
+    const identity = contextIdentity(context);
+    const progress = video.ended ? 1 : Math.min(video.currentTime / video.duration, 1);
+    const previous = sentForVideo.get(video) || { identity: '', progress: 0 };
+    const lastProgress = previous.identity === identity ? previous.progress : 0;
+    if (!force && previous.identity === identity && progress - lastProgress < 0.025) return;
+    sentForVideo.set(video, { identity, progress });
     safeSendMessage({ type: 'playback', payload: {
       sourceKey: '',
       title: context.title,
@@ -215,7 +272,8 @@ function observeVideo(video) {
 
 function discoverVideos(root = document) { root.querySelectorAll('video').forEach(observeVideo); }
 
-reportContext();
+reportContext(true);
+observeClientNavigation();
 observeSitePlayerMessages();
 discoverVideos();
 videoObserver = new MutationObserver((mutations) => {
@@ -226,4 +284,5 @@ videoObserver = new MutationObserver((mutations) => {
   }
 });
 videoObserver.observe(document.documentElement, { subtree: true, childList: true });
-contextTimer = setInterval(reportContext, 30_000);
+contextTimer = setInterval(() => reportContext(true), 30_000);
+navigationTimer = setInterval(detectPageTransition, 1_000);

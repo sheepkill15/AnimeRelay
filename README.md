@@ -75,7 +75,7 @@ Discord support is optional and off by default.
 3. In Anime Relay, open **Connections**, enable **Discord activity**, paste the ID, and save.
 4. Keep the Discord desktop client running.
 
-Anime Relay then shows the current English or canonical title, episode, watch percentage, remaining time, and MAL artwork. The activity clears when playback has been inactive for five minutes. It does not ask for your Discord token or account password.
+Anime Relay then shows the current English or canonical title, episode, watch percentage, remaining time, and MAL artwork. The activity clears after two minutes without a playback-progress update. It does not ask for your Discord token or account password.
 
 ## Safety behavior
 

@@ -47,7 +47,7 @@ async function relayPlayback(payload, sender) {
   const { bridgeToken } = await chrome.storage.local.get('bridgeToken');
   if (!bridgeToken) return { ok: false, error: 'not_paired' };
   const context = sender.tab?.id != null ? tabContexts.get(sender.tab.id) : null;
-  const merged = mergeContext(payload, context);
+  const merged = mergeContext(payload, context, sender.frameId === 0);
   if (!merged.title) return { ok: false, error: 'no_title' };
 
   const dedupeKey = `${merged.sourceKey}:${Math.floor(merged.progress * 20)}`;
@@ -68,8 +68,10 @@ async function relayPlayback(payload, sender) {
   }
 }
 
-function mergeContext(playback, context) {
-  const contextFresh = context && Date.now() - context.seenAt < 30 * 60_000;
+function mergeContext(playback, context, fromTopFrame = false) {
+  // Top-frame playback already carries the newest SPA metadata. Cached tab
+  // context is only needed to enrich videos running inside a player iframe.
+  const contextFresh = !fromTopFrame && context && Date.now() - context.seenAt < 30 * 60_000;
   const title = contextFresh && context.title ? context.title : playback.title;
   const episode = contextFresh && context.episode != null ? context.episode : playback.episode;
   const detectedMalAnimeId = contextFresh && context.detectedMalAnimeId != null

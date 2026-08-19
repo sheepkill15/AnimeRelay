@@ -5,7 +5,7 @@ import type { AppDatabase } from './database.js';
 
 const HANDSHAKE = 0;
 const FRAME = 1;
-const ACTIVITY_TTL_MS = 5 * 60_000;
+export const ACTIVITY_TTL_MS = 2 * 60_000;
 
 interface DiscordActivity {
   type: number;
@@ -43,9 +43,7 @@ export class DiscordPresence {
       return;
     }
 
-    const event = this.db.listEvents(50).find((item) =>
-      item.status !== 'ignored' && item.status !== 'failed' && Date.now() - new Date(item.observedAt).getTime() < ACTIVITY_TTL_MS,
-    );
+    const event = findActivePlayback(this.db.listEvents(50));
     const anime = event?.malAnimeId ? this.db.getLibraryAnime(event.malAnimeId) : null;
     this.pendingActivity = event ? this.buildActivity(event, anime) : null;
 
@@ -173,6 +171,14 @@ export function encodeFrame(opcode: number, payload: unknown): Buffer {
   frame.writeUInt32LE(body.length, 4);
   body.copy(frame, 8);
   return frame;
+}
+
+export function findActivePlayback(events: WatchEvent[], now = Date.now()): WatchEvent | undefined {
+  return events.find((item) => {
+    if (item.status === 'ignored' || item.status === 'failed') return false;
+    const age = now - new Date(item.observedAt).getTime();
+    return age >= 0 && age < ACTIVITY_TTL_MS;
+  });
 }
 
 function openPipe(path: string): Promise<Socket | null> {

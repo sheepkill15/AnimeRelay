@@ -13,6 +13,7 @@ function runContentScript(options: {
 } = {}) {
   const sent: Array<{ type: string; payload: Record<string, unknown> }> = [];
   const listeners: Record<string, (event: unknown) => void> = {};
+  const intervals: Array<() => void> = [];
   let metadataReads = 0;
   const location = new URL(options.url ?? 'https://anikoto.cz/watch/the-asterisk-war-xgzuw/ep-1');
   const activeEpisode = options.activeEpisode === undefined ? { dataset: { num: '1', mal: '30544' } } : options.activeEpisode;
@@ -55,12 +56,19 @@ function runContentScript(options: {
     Element: class {},
     location,
     MutationObserver: class { observe() {} disconnect() {} },
-    setInterval() { return 1; },
+    setInterval(callback: () => void) { intervals.push(callback); return intervals.length; },
     URL,
     WeakMap,
     window: windowObject,
   });
-  return { sent, listeners, metadataReads };
+  return {
+    sent,
+    listeners,
+    metadataReads,
+    location,
+    activeEpisode,
+    tickIntervals() { intervals.forEach((callback) => callback()); },
+  };
 }
 
 describe('Anikoto content adapter', () => {
@@ -93,6 +101,31 @@ describe('Anikoto content adapter', () => {
       player: 'Embedded player · anikoto.cz',
     });
     expect(sent[1].payload.progress).toBeCloseTo(1200 / 1380);
+  });
+
+  it('resets progress immediately when the next episode loads client-side', () => {
+    const result = runContentScript();
+    result.listeners.message({
+      origin: 'https://megacloud.example',
+      data: { channel: 'megacloud', event: 'time', time: 1200, duration: 1380 },
+    });
+
+    result.location.pathname = '/watch/the-asterisk-war-xgzuw/ep-2';
+    if (result.activeEpisode) result.activeEpisode.dataset.num = '2';
+    result.tickIntervals();
+    result.listeners.message({
+      origin: 'https://megacloud.example',
+      data: { channel: 'megacloud', event: 'time', time: 5, duration: 1380 },
+    });
+
+    expect(result.sent.at(-2)).toMatchObject({
+      type: 'page-context',
+      payload: { episode: 2, url: 'https://anikoto.cz/watch/the-asterisk-war-xgzuw/ep-2' },
+    });
+    expect(result.sent.at(-1)).toMatchObject({
+      type: 'playback',
+      payload: { episode: 2, positionSeconds: 5, progress: 5 / 1380 },
+    });
   });
 
   it('ignores non-HTTPS synthetic player messages', () => {
