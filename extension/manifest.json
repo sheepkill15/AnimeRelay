@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Anime Relay",
+  "version": "0.3.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl3aVLYt4mvWkOt4yKKXadyswVq7gpb4NKXNqEgWZOmeCfnqf55HRl4Ow4BKyTgE4VADJqOWuyriGi4ghvZgUisncUi2rM8ZtoXJQaDjE07acqkUREkNwjSRJ4wJIJf4jQdQmTNxnMbMElGmyEZoxg4V4FUJGXml5UiYQ4orcHorGeIklBhdgNJxVfwks0cP0PzHglR++nUjtm6D+m23JkmxjB36nlsJz74Iu1+Bk0FSD8aeAnPp7o5daeJeSNzkW58BQJXQttVx8xyBYmITKbCl9zzYT0CQJRKOM3fJ3vStb47Md9EhRIttZpt3PQWm2wdzDXPZlnMTzlgDbJeASCQIDAQAB",
+  "description": "Detect anime playback and relay completed episodes to the Anime Relay desktop app.",
+  "icons": { "16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png" },
+  "permissions": ["storage", "alarms"],
+  "host_permissions": ["http://127.0.0.1:3210/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_title": "Anime Relay", "default_popup": "popup.html", "default_icon": { "16": "icons/icon-16.png", "32": "icons/icon-32.png" } },
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*"],
+    "js": ["content.js"],
+    "run_at": "document_idle",
+    "all_frames": true
+  }]
+}

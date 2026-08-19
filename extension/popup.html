@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Anime Relay</title><link rel="stylesheet" href="popup.css"></head><body>
+  <main>
+    <header><span>A</span><div><strong>Anime Relay</strong><small id="status">Checking desktop app…</small></div></header>
+    <section id="pairing" hidden><label for="code">Pairing code</label><div><input id="code" inputmode="numeric" maxlength="6" placeholder="000000" autofocus><button id="pair">Pair</button></div><p>Find this code under Connections in the desktop app.</p></section>
+    <section id="connected" hidden><div class="success"><i></i><div><strong>Ready to track</strong><p>Play an episode normally. Progress is sent only to the app on this computer.</p></div></div></section>
+    <p class="error" id="error"></p>
+  </main><script src="popup.js"></script>
+</body></html>

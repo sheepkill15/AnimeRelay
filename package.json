@@ -1,0 +1,62 @@
+{
+  "name": "anime-relay",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Automatic MyAnimeList tracking across browser streaming, Plex, and local playback.",
+  "main": "dist/main/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm run copy:preload && concurrently -k \"vite\" \"tsc -p tsconfig.main.json --watch\" \"wait-on tcp:5173 file:dist/main/index.js && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
+    "build": "vite build && tsc -p tsconfig.main.json && pnpm run copy:preload",
+    "copy:preload": "node scripts-copy-preload.mjs",
+    "start": "electron .",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.main.json --noEmit",
+    "dist": "pnpm run build && electron-builder --win nsis"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "concurrently": "latest",
+    "cross-env": "latest",
+    "electron": "latest",
+    "electron-builder": "latest",
+    "typescript": "latest",
+    "vite": "latest",
+    "vitest": "latest",
+    "wait-on": "latest"
+  },
+  "build": {
+    "appId": "dev.animerelay.app",
+    "productName": "Anime Relay",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "extension/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "extension/**/*"
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "include": "build/installer.nsh"
+    }
+  },
+  "packageManager": "pnpm@11.15.1"
+}
