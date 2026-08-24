@@ -7,8 +7,14 @@ describe('parseEpisode', () => {
     ['[SubsPlease] Sousou no Frieren - 24 (1080p).mkv', 24],
     ['Dan Da Dan S01E07', 7],
     ['/shows/dandadan/episode-9', 9],
+    ['101 - The Boy in the Iceberg', 101],
+    ['05v2 - Rewatch', 5],
   ])('extracts an episode from %s', (value, expected) => {
     expect(parseEpisode(value)).toBe(expected);
+  });
+
+  it('does not treat a leading number as an episode without a separator', () => {
+    expect(parseEpisode('5 Centimeters per Second')).toBeNull();
   });
 
   it('does not treat a year as an episode without an episode marker', () => {

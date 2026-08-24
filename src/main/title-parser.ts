@@ -25,6 +25,7 @@ export function parseEpisode(...values: Array<string | null | undefined>): numbe
       /\b(?:episode|ep\.?)\s*[-:#]?\s*(\d{1,4})(?:\D|$)/i,
       /(?:^|[\s._-])E(\d{1,4})(?:\D|$)/i,
       /\s+-\s+(\d{1,4})(?:v\d+)?(?:\D|$)/i,
+      /^(\d{1,4})(?:v\d+)?\s*[-_.]\s*/,
     ];
     for (const pattern of patterns) {
       const match = value.match(pattern);
