@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeTitle, parseEpisode, titleSimilarity } from '../src/main/title-parser';
+import { normalizeTitle, parseEpisode, parseMediaTitle, titleSimilarity } from '../src/main/title-parser';
 
 describe('parseEpisode', () => {
   it.each([
@@ -35,5 +35,35 @@ describe('titleSimilarity', () => {
 
   it('does not confidently match unrelated titles', () => {
     expect(titleSimilarity('Monster', 'Frieren')).toBeLessThan(0.5);
+  });
+
+  it('ranks the original series above symbol-only sequels like Gintama°', () => {
+    expect(titleSimilarity('gintama', 'Gintama')).toBe(1);
+    expect(titleSimilarity('gintama', 'Gintama°')).toBeLessThan(1);
+    expect(titleSimilarity('gintama', 'Gintama’')).toBeLessThan(1);
+    expect(titleSimilarity('gintama', 'Gintama.')).toBeLessThan(1);
+  });
+});
+
+describe('parseMediaTitle', () => {
+  it.each([
+    ['Yu-Gi-Oh! Duel Monsters - 001 - The Heart of the Cards', 'yu gi oh duel monsters', 1],
+    ['Yu-Gi-Oh! Duel Monsters - 002 - The Gauntlet Is Thrown', 'yu gi oh duel monsters', 2],
+    ['Avatar The Last Airbender S01E03 - The Southern Air Temple', 'avatar the last airbender', 3],
+    ['[SubsPlease] Sousou no Frieren - 24 (1080p)', 'sousou no frieren', 24],
+    ['Dan Da Dan Episode 7 - Title Here', 'dan da dan', 7],
+  ])('keeps only the series name from %s', (value, series, episode) => {
+    expect(parseMediaTitle(value)).toEqual({ series, episode });
+  });
+
+  it('reports no series for episode-first titles', () => {
+    expect(parseMediaTitle('101 - The Boy in the Iceberg')).toEqual({ series: null, episode: 101 });
+  });
+});
+
+describe('titleSimilarity punctuation', () => {
+  it('matches punctuated MAL titles against normalized queries', () => {
+    expect(titleSimilarity('yu gi oh', 'Yu-Gi-Oh!')).toBeGreaterThanOrEqual(0.82);
+    expect(titleSimilarity('yu gi oh duel monsters', 'Yu☆Gi☆Oh! Duel Monsters')).toBeGreaterThanOrEqual(0.82);
   });
 });
